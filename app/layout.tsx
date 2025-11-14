@@ -59,7 +59,7 @@ export default function RootLayout({
                 <Footer />
               </div>
 
-              <Toaster />
+              <Toaster position="top-right" />
               <AgreementModal />
             </Providers>
           </TooltipProvider>
