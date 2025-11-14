@@ -32,7 +32,7 @@ export const TableRowWrapper: React.FC<TableRowWrapperProps> = ({
       {childArray.map((child, index) => {
         const isElement = React.isValidElement(child);
         const isAssetCell =
-          isElement && child.props?.id === "asset";
+          isElement && (child.props as { id?: string })?.id === "asset";
 
         return (
           <CellComponent
