@@ -6,9 +6,11 @@ import { UserProvider } from '@/contexts/UserContext'
 import { EPredictoorContractInterval } from '@/utils/types/EPredictoorContractInterval'
 import { WagmiProvider } from 'wagmi'
 import { AccuracyProvider } from './AccuracyContext'
+import type { Config } from 'wagmi'
+
 
 interface AppProviderProps {
-  wagmiConfig: any
+  wagmiConfig: Config
   children: React.ReactNode
 }
 

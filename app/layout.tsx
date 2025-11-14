@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/Providers";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import AgreementModal from "@/components/AgreementModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,6 +60,7 @@ export default function RootLayout({
               </div>
 
               <Toaster />
+              <AgreementModal />
             </Providers>
           </TooltipProvider>
         </ThemeProvider>

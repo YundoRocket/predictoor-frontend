@@ -546,8 +546,6 @@ export const PredictoorsProvider: React.FC<TPredictoorsContextProps> = ({
     }
   }, [subscribedPredictoors, currentEpoch, addChainListener, secondsPerEpoch, predictoorInstances.length])
 
-  // This useEffect is legitimate - it's fetching external data (async side effect)
-  // It also merges with initialEpochData if available
   useEffect(() => {
     let isMounted = true
 

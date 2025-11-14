@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useChainId, useChains, useDisconnect } from "wagmi";
 import { Button } from "@/components/ui/button";
 
+
 export default function Wallet() {
   const [showPopup, setShowPopup] = useState(false);
 
@@ -16,11 +17,15 @@ export default function Wallet() {
   const { disconnect } = useDisconnect();
   const { address, isConnected } = useAccount();
 
-  const networkName = useMemo(() => {
-    if (!isConnected || !address || !chainId || chainId <= 0) return undefined;
-    const chain = chains.find((c: any) => c.id === chainId);
-    return chain?.name || `Chain ${chainId}`;
-  }, [isConnected, address, chainId, chains]);
+const networkName = useMemo((): string | undefined => {
+  if (!isConnected || !address || !chainId || chainId <= 0) return undefined;
+
+  const chain = chains.find((c) => "id" in c && c.id === chainId);
+
+  return typeof chain?.name === "string"
+    ? chain.name
+    : `Chain ${chainId}`;
+}, [isConnected, address, chainId, chains]);
 
   const buttonLabel = useMemo(() => {
     if (!isConnected || !address) return "Connect Wallet";
@@ -57,9 +62,14 @@ export default function Wallet() {
     try {
       setShowPopup(false);
       await disconnect();
-    } catch (error: any) {
-      const errorMessage =
-        error?.message || error?.toString() || String(error) || "";
+    } catch (error: unknown) {
+        let errorMessage = "";
+
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = String(error);
+        }
 
       // WalletConnect encryption errors
       if (
