@@ -1,5 +1,6 @@
+'use client'
+
 import Image from 'next/image'
-import styles from '../styles/Asset.module.css'
 import { TokenData } from '../utils/asset'
 import { SubscriptionStatus } from './Subscription'
 import SubscriptionDot from './SubscriptionDot'
@@ -23,24 +24,26 @@ export default function Asset({
   if (!assetData) return null
 
   return (
-    <div className={styles.container}>
+    <div className="flex items-center gap-2 px-2 py-1">
       <SubscriptionDot
         status={subscription}
         assetName={assetData.name}
         contractAddress={contractAddress}
         secondsPerSubscription={secondsPerSubscription}
       />
-      <img
-        className={styles.image}
+      <Image
+        className="h-8 w-8 rounded-full"
         src={`/assets/icons/${assetData.symbol}.svg`}
         alt="Coin symbol image"
+        width={32}
+        height={32}
       />
-      <div className={styles.assetInfoContainer}>
-        <span className={styles.assetName}>{assetData.name}</span>
-        <div className={styles.marketInfoContainer}>
+      <div className="flex flex-col gap-0.5">
+        <span className="text-sm font-semibold">{assetData.name}</span>
+        <div className="flex items-center gap-1">
           <Image
             src={
-              assetData.market == Markets.BINANCE
+              assetData.market === Markets.BINANCE
                 ? '/binance-logo.png'
                 : '/kraken-logo.png'
             }
@@ -48,7 +51,7 @@ export default function Asset({
             width={9}
             height={9}
           />
-          <span className={styles.marketText}>
+          <span className="text-xs text-muted-foreground">
             {assetData.market.toUpperCase()}
           </span>
         </div>

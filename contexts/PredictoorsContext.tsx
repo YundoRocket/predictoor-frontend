@@ -1,3 +1,5 @@
+"use client";
+
 import { useEthersSigner } from '@/hooks/useEthersSigner'
 import { useIsCorrectChain } from '@/hooks/useIsCorrectChain'
 import { AuthorizationData } from '@/utils/AuthorizationData'

@@ -1,17 +1,16 @@
+'use client'
 
 import { TokenData } from '@/utils/asset'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useAccuracyContext } from '@/contexts/AccuracyContext'
 import { getAccuracyStatisticsByTokenName } from '@/contexts/AccuracyContextHelpers'
 import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
-import { Pair } from '@/contexts/MarketPriceContext.types'
 import { getSpecificPairFromContextData } from '@/contexts/MarketPriceContextHelpers'
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'
 import { useSocketContext } from '@/contexts/SocketContext'
 import { useTimeFrameContext } from '@/contexts/TimeFrameContext'
-import { TableRowWrapper } from '@/elements/TableRowWrapper'
-import styles from '@/styles/Table.module.css'
+import { TableRowWrapper } from './elements/TableRowWrapper'
 import Accuracy from './Accuracy'
 import Asset from './Asset'
 import { TAssetData } from './AssetTable'
@@ -77,12 +76,14 @@ export const AssetRow: React.FC<TAssetRowProps> = ({ assetData }) => {
     contract
   } = assetData
 
-  const loadData = useCallback<(pairsData: Array<Pair>) => void>(
-    (pairsData) => {
-      const pairSymbol = `${baseToken}${quoteToken}`
+  // Periodic price update
+  useEffect(() => {
+    const priceInterval = setInterval(() => {
+      if (!allPairsData) return
 
+      const pairSymbol = `${baseToken}${quoteToken}`
       const price = getSpecificPairFromContextData({
-        allPairsData: pairsData,
+        allPairsData: allPairsData,
         pairSymbol: pairSymbol
       })
 
@@ -94,44 +95,12 @@ export const AssetRow: React.FC<TAssetRowProps> = ({ assetData }) => {
         symbol: baseToken,
         market: market
       })
-    },
-    [baseToken, market, quoteToken]
-  )
-
-  const renewPrice = useCallback<() => Promise<void>>(async () => {
-    if (!allPairsData) return
-    loadData(allPairsData)
-  }, [allPairsData, loadData])
-
-  useEffect(() => {
-    const priceInterval = setInterval(() => {
-      renewPrice()
     }, 10000)
 
     return () => {
       clearInterval(priceInterval)
     }
-  }, [epochData, renewPrice])
-
-  // Calculate accuracy and set state
-  const loadAccuracy = useCallback<() => void>(() => {
-    if (!contract || !getAccuracyStatisticsByTokenName) return
-
-    const data = getAccuracyStatisticsByTokenName({
-      contractAddress: contract.address,
-      accuracyData: accuracyStatistics,
-      timeFrameInterval: timeFrameInterval
-    })
-
-    if (!data) return
-    const { average_accuracy, total_staked_today, total_staked_yesterday } =
-      data
-    setTokenAccuracyStake({
-      accuracy: average_accuracy,
-      totalStake: total_staked_today,
-      totalStakePreviousDay: total_staked_yesterday
-    })
-  }, [contract, timeFrameInterval, accuracyStatistics])
+  }, [allPairsData, baseToken, quoteToken, market, epochData])
 
   const slotProps = useMemo(
     () =>
@@ -143,26 +112,53 @@ export const AssetRow: React.FC<TAssetRowProps> = ({ assetData }) => {
             market
           }
         : null,
-    [tokenName, pairName, subscription]
+    [tokenName, pairName, subscription, market]
   )
 
   useEffect(() => {
     if (!allPairsData) return
-    loadData(allPairsData)
-  }, [allPairsData, loadData])
+
+    const pairSymbol = `${baseToken}${quoteToken}`
+    const price = getSpecificPairFromContextData({
+      allPairsData: allPairsData,
+      pairSymbol: pairSymbol
+    })
+
+    const name = `${baseToken}-${quoteToken}`
+    setTokenData({
+      price: parseFloat(price),
+      name,
+      pair: pairSymbol,
+      symbol: baseToken,
+      market: market
+    })
+  }, [allPairsData, baseToken, quoteToken, market])
 
   useEffect(() => {
-    if (!contract) return
-    loadAccuracy()
-  }, [contract, loadAccuracy])
+    if (!contract || !getAccuracyStatisticsByTokenName) return
+
+    const data = getAccuracyStatisticsByTokenName({
+      contractAddress: contract.address,
+      accuracyData: accuracyStatistics,
+      timeFrameInterval: timeFrameInterval
+    })
+
+    if (!data) return
+    const { average_accuracy, total_staked_today, total_staked_yesterday } = data
+    setTokenAccuracyStake({
+      accuracy: average_accuracy,
+      totalStake: total_staked_today,
+      totalStakePreviousDay: total_staked_yesterday
+    })
+  }, [contract, timeFrameInterval, accuracyStatistics])
 
   if (!tokenData || !slotProps) return null
 
   return (
     <TableRowWrapper
-      className={styles.tableRow}
+      className="border-b border-border hover:bg-muted/50 transition-colors"
       cellProps={{
-        className: styles.tableRowCell
+        className: "px-4 py-3 min-w-[150px]"
       }}
     >
       <Asset

@@ -1,15 +1,16 @@
+'use client'
+
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'
 import { TPredictoorsContext } from '@/contexts/PredictoorsContext.types'
 import { useUserContext } from '@/contexts/UserContext'
-import Button, { ButtonType } from '@/elements/Button'
+import { Button } from '@/components/ui/button'
 import { useEthersSigner } from '@/hooks/useEthersSigner'
 import { useIsCorrectChain } from '@/hooks/useIsCorrectChain'
 import { NonError, ValueOf, sleep } from '@/utils/utils'
 import { useCallback, useMemo } from 'react'
-import { NotificationManager } from 'react-notifications'
-import { ClipLoader } from 'react-spinners'
+import { toast } from 'sonner'
+import { Loader2, Coins } from 'lucide-react'
 import { useAccount } from 'wagmi'
-import styles from '../styles/Subscription.module.css'
 
 export enum SubscriptionStatus {
   'INACTIVE' = 'inactive',
@@ -59,7 +60,7 @@ export default function Subscription({
     if (!contractPrice || contractPrice instanceof Error) return loadingResult
 
     return { price: contractPrice }
-  }, [contractPrices, contractAddress])
+  }, [contractPrices, contractAddress, subscriptionData?.price])
 
   const BuyAction = useCallback<
     (args: { currentStatus: SubscriptionStatus }) => Promise<void>
@@ -83,64 +84,62 @@ export default function Subscription({
 
         await sleep(1000)
 
-        if (!!receipt) {
+        if (receipt) {
           runCheckContracts()
         }
         refetchBalance()
         setIsBuyingSubscription('')
-        NotificationManager.success(
-          '',
-          'Subscription purchase succesful!',
-          5000
-        )
-      } catch (e: any) {
-        console.error(e)
+        toast.success('Subscription purchase successful!')
+      } catch (e: unknown) {
+        const error = e as Error
+        console.error(error)
         setIsBuyingSubscription('')
-        NotificationManager.error(e, 'Subscription purchase failed!', 5000)
+        toast.error('Subscription purchase failed!')
       }
     },
-    [isConnected, address, getPredictorInstanceByAddress, contractAddress]
+    [
+      isConnected,
+      address,
+      getPredictorInstanceByAddress,
+      contractAddress,
+      setIsBuyingSubscription,
+      signer,
+      runCheckContracts,
+      refetchBalance
+    ]
   )
 
   if (!subscriptionData) return null
 
+  const isLoading = isBuyingSubscription === contractAddress
+  const isDisabled = !isConnected || isBuyingSubscription !== '' || !isCorrectNetwork
+
   return (
-    <div className={`${styles.price} ${styles.container}`}>
+    <div className="flex items-center gap-3 px-3 py-2">
       {contractPriceInfo.price > 0 ? (
         <>
-          <div className={styles.priceContent}>
-            <img
-              className={styles.tokenImage}
-              src={'oceanToken.png'}
-              alt="Coin symbol image"
-            />
-            <b>{contractPriceInfo.price}</b> /{' '}
-            {subscriptionData.secondsPerSubscription / 3600}h
+          <div className="flex items-center gap-1.5 text-sm font-medium">
+            <Coins className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="font-semibold">{contractPriceInfo.price}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-muted-foreground">
+              {subscriptionData.secondsPerSubscription / 3600}h
+            </span>
           </div>
           <Button
-            text={`${
-              isBuyingSubscription == contractAddress ? 'Buying...' : 'Buy'
-            }`}
-            type={ButtonType.SECONDARY}
+            variant="secondary"
+            size="sm"
             onClick={() =>
               BuyAction({ currentStatus: subscriptionData.status })
             }
-            disabled={
-              !isConnected || isBuyingSubscription !== '' || !isCorrectNetwork
-            }
+            disabled={isDisabled}
           >
-            {isBuyingSubscription == contractAddress && (
-              <ClipLoader
-                size={8}
-                color="var(--dark-grey)"
-                loading={true}
-                className={styles.loader}
-              />
-            )}
+            {isLoading && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+            {isLoading ? 'Buying...' : 'Buy'}
           </Button>
         </>
       ) : (
-        <ClipLoader size={12} color="var(--dark-grey)" loading={true} />
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
       )}
     </div>
   )

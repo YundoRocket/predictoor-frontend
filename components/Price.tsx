@@ -1,3 +1,5 @@
+'use client'
+
 import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
 import { getRelatedPair } from '@/contexts/MarketPriceContextHelpers'
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'

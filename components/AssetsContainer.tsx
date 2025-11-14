@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useRef } from 'react'
 
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'
@@ -9,7 +11,6 @@ import {
 import { currentConfig } from '@/utils/appconstants'
 import { getInitialData } from '@/utils/getInitialData'
 import { Maybe } from '@/utils/utils'
-import styles from '../styles/AssetsTable.module.css'
 import { AssetTable } from './AssetTable'
 
 export const AssetsContainer: React.FC = () => {
@@ -46,7 +47,7 @@ export const AssetsContainer: React.FC = () => {
 
   return (
     <div
-      className={styles.container}
+      className="w-full overflow-x-auto"
       ref={(ref) => {
         containerRef.current = ref
       }}

@@ -1,19 +1,26 @@
+'use client'
+
 import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
 import { getRelatedPair } from '@/contexts/MarketPriceContextHelpers'
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'
 import { useSocketContext } from '@/contexts/SocketContext'
 import { useEffect, useMemo, useState } from 'react'
-import styles from '../styles/Epoch.module.css'
 import { EpochPrediction } from './EpochDetails/EpochPrediction'
 import { EpochPrice } from './EpochDetails/EpochPrice'
 import { EpochStakedTokens } from './EpochDetails/EpochStakedTokens'
 import { SubscriptionStatus } from './Subscription'
 
-//TODO: Fix Eslint
 export enum EEpochDisplayStatus {
   'NextEpoch' = 'next',
   'LiveEpoch' = 'live',
   'PastEpoch' = 'history'
+}
+
+type RelatedData = {
+  nom?: string
+  denom?: string
+  dir?: number
+  epoch?: number
 }
 
 export type TEpochDisplayProps = {
@@ -38,12 +45,11 @@ export const EpochDisplay: React.FC<TEpochDisplayProps> = ({
   secondsPerEpoch
 }) => {
   const { epochData } = useSocketContext()
-  const [relatedData, setRelatedData] = useState<any>()
+  const [relatedData, setRelatedData] = useState<RelatedData | null>()
   const [delta, setDelta] = useState<number>()
   const [finalPrice, setFinalPrice] = useState<number>(0)
   const { fetchingPredictions } = usePredictoorsContext()
-  const { fetchHistoricalPair, historicalPairsCache } = useMarketPriceContext()
-  const { isPriceLoading } = useMarketPriceContext()
+  const { fetchHistoricalPair, historicalPairsCache, isPriceLoading } = useMarketPriceContext()
 
   const isNextEpoch = useMemo<boolean>(
     () => status === EEpochDisplayStatus.NextEpoch,
@@ -102,16 +108,17 @@ export const EpochDisplay: React.FC<TEpochDisplayProps> = ({
   ])
 
   useEffect(() => {
-    setRelatedData(
-      Array.isArray(epochData)
-        ? epochData
-            ?.find((data) => data.contractInfo?.address == address)
-            ?.predictions.sort((a, b) => a.epoch - b.epoch)[
-            relatedPredictionIndex
-          ]
-        : null
-    )
-  }, [epochData])
+    if (!Array.isArray(epochData)) {
+      setRelatedData(null)
+      return
+    }
+
+    const foundData = epochData
+      ?.find((data) => data.contractInfo?.address === address)
+      ?.predictions.sort((a, b) => a.epoch - b.epoch)[relatedPredictionIndex]
+
+    setRelatedData(foundData || null)
+  }, [epochData, address, relatedPredictionIndex])
 
   useEffect(() => {
     if (isNextEpoch || !secondsPerEpoch || !epochStartTs) return
@@ -119,7 +126,7 @@ export const EpochDisplay: React.FC<TEpochDisplayProps> = ({
   }, [relatedData, secondsPerEpoch, epochStartTs, isNextEpoch])
 
   return (
-    <div className={styles.container}>
+    <div className="flex flex-col gap-1 px-2 py-1">
       {status !== EEpochDisplayStatus.NextEpoch && (
         <EpochPrice
           price={finalPrice}
@@ -131,25 +138,23 @@ export const EpochDisplay: React.FC<TEpochDisplayProps> = ({
         subscription !== SubscriptionStatus.INACTIVE ? (
           <EpochStakedTokens
             stakedUp={
-              relatedData?.nom ? parseFloat(relatedData?.nom) : undefined
+              relatedData?.nom ? parseFloat(relatedData.nom) : undefined
             }
             totalStaked={
-              relatedData?.denom ? parseFloat(relatedData?.denom) : undefined
+              relatedData?.denom ? parseFloat(relatedData.denom) : undefined
             }
             direction={relatedData?.dir}
             showLabel
           />
         ) : (
-          '-'
+          <span className="text-muted-foreground">-</span>
         )
-      ) : (
-        ''
-      )}
+      ) : null}
       {subscription !== SubscriptionStatus.INACTIVE && (
         <EpochPrediction
-          stakedUp={relatedData?.nom ? parseFloat(relatedData?.nom) : undefined}
+          stakedUp={relatedData?.nom ? parseFloat(relatedData.nom) : undefined}
           totalStaked={
-            relatedData?.nom ? parseFloat(relatedData?.denom) : undefined
+            relatedData?.denom ? parseFloat(relatedData.denom) : undefined
           }
           loading={!relatedData || fetchingPredictions}
           direction={relatedData?.dir}

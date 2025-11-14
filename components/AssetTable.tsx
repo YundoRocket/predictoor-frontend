@@ -1,13 +1,15 @@
+'use client'
+
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { tooltipsText } from '../metadata/tootltips'
 
 import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'
 import { useTimeFrameContext } from '@/contexts/TimeFrameContext'
-import LiveTime from '@/elements/LiveTime'
-import { TableRowWrapper } from '@/elements/TableRowWrapper'
-import Tooltip from '@/elements/Tooltip'
-import styles from '@/styles/Table.module.css'
+import LiveTime from './elements/LiveTime'
+import { TableRowWrapper } from './elements/TableRowWrapper'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Info } from 'lucide-react'
 import {
   assetTableColumns,
   currentConfig,
@@ -18,6 +20,11 @@ import { TPredictionContract } from '@/utils/subgraphs/getAllInterestingPredicti
 import { EPredictoorContractInterval } from '@/utils/types/EPredictoorContractInterval'
 import { AssetRow } from './AssetRow'
 import { SubscriptionStatus } from './Subscription'
+
+type TableColumn = {
+  Header: string | React.ReactNode
+  accessor: string
+}
 
 export type TAssetData = {
   tokenName: string
@@ -33,7 +40,6 @@ export type TAssetData = {
 }
 
 export type TAssetTableProps = {
-  //contracts: TPredictionContract[]
   contracts: Record<string, TPredictionContract> | undefined
 }
 
@@ -47,7 +53,7 @@ export const AssetTable: React.FC<TAssetTableProps> = ({ contracts }) => {
 
   const { fetchAndCacheAllPairs } = useMarketPriceContext()
 
-  const [tableColumns, setTableColumns] = useState<any>(assetTableColumns)
+  const [tableColumns, setTableColumns] = useState<TableColumn[]>(assetTableColumns)
   const [assetsData, setAssetsData] = useState<TAssetTableState['AssetsData']>()
   const { timeFrameInterval } = useTimeFrameContext()
   const subscribedContractAddresses = useMemo(
@@ -124,9 +130,9 @@ export const AssetTable: React.FC<TAssetTableProps> = ({ contracts }) => {
     secondLineText: string
   ) => {
     return (
-      <div className={styles.displayColumn}>
+      <div className="flex flex-col">
         {firstLineText}
-        <span className={styles.headerTextSmall}>{secondLineText}</span>
+        <span className="text-xs text-muted-foreground">{secondLineText}</span>
       </div>
     )
   }
@@ -138,7 +144,7 @@ export const AssetTable: React.FC<TAssetTableProps> = ({ contracts }) => {
 
   useEffect(() => {
     if (!currentEpoch) return
-    let newAssetTableColumns = JSON.parse(JSON.stringify(assetTableColumns))
+    const newAssetTableColumns: TableColumn[] = JSON.parse(JSON.stringify(assetTableColumns))
     newAssetTableColumns[1].Header = formatTime(
       new Date((currentEpoch - secondsPerEpoch) * 1000)
     )
@@ -149,13 +155,13 @@ export const AssetTable: React.FC<TAssetTableProps> = ({ contracts }) => {
       'Predictions'
     )
     newAssetTableColumns[5].Header = getThowLinesHeader(
-      newAssetTableColumns[5].Header,
+      newAssetTableColumns[5].Header as string,
       timeFrameInterval === EPredictoorContractInterval.e_5M
         ? '1 week'
         : '4 weeks'
     )
     newAssetTableColumns[6].Header = getThowLinesHeader(
-      newAssetTableColumns[6].Header,
+      newAssetTableColumns[6].Header as string,
       '24h'
     )
 
@@ -170,57 +176,58 @@ export const AssetTable: React.FC<TAssetTableProps> = ({ contracts }) => {
     return () => clearInterval(interval)
   }, [fetchAndCacheAllPairs])
 
-  const calculatedCSS = `
-    @media screen and (max-width: 1000px) {
-      .${styles.tableHeaderCell}, .${styles.tableRowCell} {
-        width: ${window.innerWidth / 3}px !important;
-      }
-    }
-  `
-
   return (
     tableColumns && (
-      <>
-        <style>{calculatedCSS}</style>
-        <table className={styles.table}>
+      <div className="w-full overflow-x-auto">
+        <table className="w-full border-collapse">
           <thead>
             <TableRowWrapper
-              className={styles.tableRow}
+              className="border-b border-border"
               cellProps={{
-                className: styles.tableHeaderCell
+                className: "px-4 py-3 text-left text-sm font-medium min-w-[150px]"
               }}
               cellType="th"
             >
-              {tableColumns.map((item: any, index: number) => (
-                <div
-                  className={styles.assetHeaderContainer}
-                  key={`assetHeader${item.accessor}`}
-                  id={item.accessor}
-                >
-                  <span>{item.Header}</span>
-                  <Tooltip
-                    selector={`${item.accessor}Tooltip`}
-                    text={(() => {
-                      if (item.accessor !== 'accuracy')
-                        return tooltipsText[
-                          item.accessor as keyof typeof tooltipsText
-                        ]
+              {tableColumns.map((item) => {
+                const getTooltipText = () => {
+                  if (item.accessor !== 'accuracy')
+                    return tooltipsText[
+                      item.accessor as keyof typeof tooltipsText
+                    ]
 
-                      const tempKey =
-                        timeFrameInterval === EPredictoorContractInterval.e_5M
-                          ? 'accuracy_5m'
-                          : 'accuracy_1h'
-                      return tooltipsText[tempKey]
-                    })()}
-                  />
-                </div>
-              ))}
+                  const tempKey =
+                    timeFrameInterval === EPredictoorContractInterval.e_5M
+                      ? 'accuracy_5m'
+                      : 'accuracy_1h'
+                  return tooltipsText[tempKey]
+                }
+
+                return (
+                  <div
+                    className="flex items-center gap-1"
+                    key={`assetHeader${item.accessor}`}
+                    id={item.accessor}
+                  >
+                    <span>{item.Header}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="inline-flex items-center justify-center ml-1">
+                          <Info className="h-3 w-3 text-muted-foreground" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">{getTooltipText()}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                )
+              })}
             </TableRowWrapper>
           </thead>
           {assetsData ? (
             assetsData.length > 0 ? (
               <tbody>
-                {assetsData.map((item, index) => (
+                {assetsData.map((item) => (
                   <AssetRow
                     key={`assetRow${item.contract.address}`}
                     assetData={item}
@@ -228,21 +235,21 @@ export const AssetTable: React.FC<TAssetTableProps> = ({ contracts }) => {
                 ))}
               </tbody>
             ) : (
-              <tbody className={styles.message}>
+              <tbody>
                 <tr>
-                  <td>No contracts found</td>
+                  <td className="px-4 py-8 text-center text-muted-foreground" colSpan={7}>No contracts found</td>
                 </tr>
               </tbody>
             )
           ) : (
-            <tbody className={styles.message}>
+            <tbody>
               <tr>
-                <td>Loading</td>
+                <td className="px-4 py-8 text-center text-muted-foreground" colSpan={7}>Loading</td>
               </tr>
             </tbody>
           )}
         </table>
-      </>
+      </div>
     )
   )
 }

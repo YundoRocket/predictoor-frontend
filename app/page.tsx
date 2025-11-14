@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { TimeFrameSwitch } from "@/components/TimeFrameSwitch";
 import { AssetsContainer } from "@/components/AssetsContainer"
 
@@ -11,7 +10,7 @@ export default function Home() {
         </p>
         <TimeFrameSwitch />
       </div>
-      {/* <AssetsContainer /> */}
+      <AssetsContainer />
     </main>
   );
 }

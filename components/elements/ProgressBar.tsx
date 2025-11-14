@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 
 type ProgressBarProps = {
-  progress: number;       // valeur initiale (ex: secondes restantes)
-  max: number;            // valeur max (pour le %)
+  progress: number;
+  max: number;
   refreshOnData?: unknown;
 };
 
@@ -16,12 +16,10 @@ export default function ProgressBar({
 }: ProgressBarProps) {
   const [completed, setCompleted] = useState(progress);
 
-  // Réinitialise la barre quand progress / refreshOnData change
   useEffect(() => {
     setCompleted(progress);
   }, [progress, refreshOnData]);
 
-  // Décrément automatique chaque seconde
   useEffect(() => {
     if (completed <= 0) return;
 

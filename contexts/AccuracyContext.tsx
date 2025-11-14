@@ -1,3 +1,5 @@
+'use client'
+
 import { getAccuracyData } from '@/utils/getPdrBackendData'
 import { EPredictoorContractInterval } from '@/utils/types/EPredictoorContractInterval'
 import { Maybe } from '@/utils/utils'

@@ -1,5 +1,8 @@
+'use client'
+
 import { useMemo } from 'react'
-import styles from '../styles/Stake.module.css'
+import { Coins } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function Stake({
   totalStake,
@@ -18,34 +21,29 @@ export default function Stake({
 
   // Format the delta for display
   const formattedDelta = useMemo(() => {
-    if (delta === undefined || delta === null) {
-      return '?'
-    }
     const sign = delta >= 0.5 ? '+' : delta < 0 ? '-' : ''
     return `${sign}${Math.abs(delta).toFixed(0)}%`
   }, [delta])
 
-  // Determine the color based on the delta value
-  const deltaColor = useMemo(() => {
+  // Determine the color class based on the delta value
+  const deltaColorClass = useMemo(() => {
     if (delta > 0.5) {
-      return 'var(--green)'
+      return 'text-green-600 dark:text-green-500'
     } else if (delta < 0) {
-      return 'var(--red)'
+      return 'text-red-600 dark:text-red-500'
     }
-    return 'var(--dark-grey)'
+    return 'text-muted-foreground'
   }, [delta])
 
   return (
-    <div className={styles.container}>
-      <div className={styles.container}>
-        <img
-          className={styles.tokenImage}
-          src="oceanToken.png"
-          alt="Coin symbol"
-        />
-        <span className={styles.accuracy}>{totalStake.toFixed(1)}</span>
+    <div className="flex flex-col gap-1 px-2 py-1">
+      <div className="flex items-center gap-1.5">
+        <Coins className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <span className="text-sm font-semibold tabular-nums">
+          {totalStake.toFixed(1)}
+        </span>
       </div>
-      <span className={styles.delta} style={{ color: deltaColor }}>
+      <span className={cn("text-xs font-medium tabular-nums", deltaColorClass)}>
         {formattedDelta}
       </span>
     </div>

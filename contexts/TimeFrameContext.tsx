@@ -1,3 +1,5 @@
+"use client";
+
 import { EPredictoorContractInterval } from '@/utils/types/EPredictoorContractInterval'
 import { createContext, useContext, useState } from 'react'
 import {

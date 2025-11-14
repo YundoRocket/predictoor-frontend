@@ -1,13 +1,15 @@
+'use client'
+
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'
 import { useUserContext } from '@/contexts/UserContext'
-import { calculateTimeRemaining } from '@/elements/CountdownComponent'
-import Tooltip from '@/elements/Tooltip'
+import { calculateTimeRemaining } from './elements/CountdownComponent'
 import { ethers } from 'ethers'
 import { useEffect, useMemo, useState } from 'react'
-import { ClipLoader } from 'react-spinners'
+import { Loader2 } from 'lucide-react'
 import { useAccount } from 'wagmi'
-import styles from '../styles/SubscriptionDot.module.css'
 import { SubscriptionStatus } from './Subscription'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 export interface SubscriptionData {
   status: SubscriptionStatus
@@ -18,7 +20,6 @@ export interface SubscriptionData {
 
 export default function SubscriptionDot({
   status,
-  assetName,
   contractAddress,
   secondsPerSubscription
 }: SubscriptionData) {
@@ -27,11 +28,9 @@ export default function SubscriptionDot({
   const { getPredictorInstanceByAddress, contractPrices } =
     usePredictoorsContext()
   const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>()
-  const [message, setMessage] = useState<string>('')
-  const [closeToExpiry, setCloseToExpiry] = useState<boolean>(false)
   const { isBuyingSubscription } = useUserContext()
 
-  const userSubscription = () => {
+  useEffect(() => {
     if (!address || !contractPrices) return
     const predictorInstance = getPredictorInstanceByAddress(contractAddress)
     predictorInstance?.getSubscriptions(address).then((resp) => {
@@ -39,10 +38,10 @@ export default function SubscriptionDot({
         setExpiryTimestamp(parseInt(ethers.utils.formatUnits(resp.expires, 0)))
       }
     })
-  }
+  }, [address, contractPrices, status, contractAddress, getPredictorInstanceByAddress])
 
-  // This function is not really a getter, and a lot of this runs when the sub is not active
-  const getTooltipText = () => {
+  // Calculate tooltip message and expiry status using useMemo
+  const { message, closeToExpiry } = useMemo(() => {
     const timeRemaining = expiryTimestamp
       ? calculateTimeRemaining(expiryTimestamp)
       : 0
@@ -51,60 +50,60 @@ export default function SubscriptionDot({
     const hours = Math.floor((timeRemaining / 1000 / 3600) % 24)
 
     const isExpiring = seconds < secondsPerSubscription * 0.1
-    setCloseToExpiry(isExpiring)
+
+    let msg = ''
     switch (status) {
       case SubscriptionStatus.FREE:
-        return setMessage('Free \n\nSubscription')
+        msg = 'Free Subscription'
+        break
       case SubscriptionStatus.ACTIVE:
-        return setMessage(
-          `Subscribed \n\n ${hours}h ${minutes}min left ${
-            isExpiring ? '(<10%)' : ''
-          }`
-        )
+        msg = `Subscribed\n${hours}h ${minutes}min left${
+          isExpiring ? ' (<10%)' : ''
+        }`
+        break
     }
-    return ''
+
+    return { message: msg, closeToExpiry: isExpiring }
+  }, [expiryTimestamp, status, secondsPerSubscription])
+
+  const dotColorClass = useMemo(() => {
+    if (isBuyingSubscription === contractAddress || status === SubscriptionStatus.INACTIVE) {
+      return 'bg-white'
+    }
+    if (status === SubscriptionStatus.ACTIVE && closeToExpiry) {
+      return 'bg-orange-500'
+    }
+    return 'bg-green-500'
+  }, [isBuyingSubscription, status, closeToExpiry, contractAddress])
+
+  if (status === SubscriptionStatus.INACTIVE && !isBuyingSubscription) {
+    return null
   }
 
-  useEffect(() => {
-    getTooltipText()
-  }, [expiryTimestamp])
+  const isLoading = isBuyingSubscription === contractAddress
 
-  useEffect(() => {
-    userSubscription()
-  }, [address, contractPrices, status])
-
-  const dotBackgroundColor = useMemo(
-    () =>
-      isBuyingSubscription == contractAddress ||
-      status === SubscriptionStatus.INACTIVE
-        ? 'white'
-        : status === SubscriptionStatus.ACTIVE && closeToExpiry
-        ? 'orange'
-        : 'green',
-    [isBuyingSubscription, status, closeToExpiry]
-  )
-
-  return status !== SubscriptionStatus.INACTIVE || isBuyingSubscription ? (
-    <div className={styles.container} id={assetName}>
-      <div
-        className={styles.image}
-        style={{
-          backgroundColor: dotBackgroundColor,
-          display:
-            isBuyingSubscription == contractAddress ? 'contents' : 'block'
-        }}
-      >
-        {isBuyingSubscription == contractAddress ? (
-          <ClipLoader size={12} color="var(--dark-grey)" loading={true} />
-        ) : (
-          ' '
-        )}
-      </div>
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="flex items-center justify-center">
+          {isLoading ? (
+            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+          ) : (
+            <div
+              className={cn(
+                'h-2 w-2 rounded-full',
+                dotColorClass,
+                'transition-colors duration-200'
+              )}
+            />
+          )}
+        </div>
+      </TooltipTrigger>
       {message && (
-        <Tooltip selector={assetName} text={message} hideIcon textAlignCenter />
+        <TooltipContent>
+          <p className="text-center whitespace-pre-line">{message}</p>
+        </TooltipContent>
       )}
-    </div>
-  ) : (
-    <></>
+    </Tooltip>
   )
 }
