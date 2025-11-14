@@ -30,14 +30,25 @@ export default function SubscriptionDot({
   const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>()
   const { isBuyingSubscription } = useUserContext()
 
+  // This useEffect is legitimate - it's fetching external data (async side effect)
   useEffect(() => {
     if (!address || !contractPrices) return
+
+    let isMounted = true
     const predictorInstance = getPredictorInstanceByAddress(contractAddress)
+
     predictorInstance?.getSubscriptions(address).then((resp) => {
-      if (resp) {
+      // Only update state if component is still mounted
+      if (resp && isMounted) {
         setExpiryTimestamp(parseInt(ethers.utils.formatUnits(resp.expires, 0)))
       }
+    }).catch((error) => {
+      console.error('Error fetching subscription:', error)
     })
+
+    return () => {
+      isMounted = false
+    }
   }, [address, contractPrices, status, contractAddress, getPredictorInstanceByAddress])
 
   // Calculate tooltip message and expiry status using useMemo

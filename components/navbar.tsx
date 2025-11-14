@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import Wallet from "./Wallet"
 
 const navLinks = [
   {
@@ -104,7 +105,7 @@ export function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button>Connect Wallet</Button>
+          <Wallet />
         </div>
 
         {/* Mobile Menu */}
@@ -164,9 +165,7 @@ export function Navbar() {
                   {networkLabel}
                 </a>
                 <div className="pt-4 border-t">
-                  <Button className="w-full" onClick={() => setOpen(false)}>
-                    Connect Wallet
-                  </Button>
+                  <Wallet />
                 </div>
               </nav>
             </SheetContent>

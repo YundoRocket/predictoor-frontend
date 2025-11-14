@@ -1,14 +1,13 @@
 'use client'
 
 import { TokenData } from '@/utils/asset'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 import { useAccuracyContext } from '@/contexts/AccuracyContext'
 import { getAccuracyStatisticsByTokenName } from '@/contexts/AccuracyContextHelpers'
 import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
 import { getSpecificPairFromContextData } from '@/contexts/MarketPriceContextHelpers'
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'
-import { useSocketContext } from '@/contexts/SocketContext'
 import { useTimeFrameContext } from '@/contexts/TimeFrameContext'
 import { TableRowWrapper } from './elements/TableRowWrapper'
 import Accuracy from './Accuracy'
@@ -38,29 +37,9 @@ export type TAssetRowState = {
 }
 
 export const AssetRow: React.FC<TAssetRowProps> = ({ assetData }) => {
-  const { epochData } = useSocketContext()
-  const [tokenAccuracyStake, setTokenAccuracyStake] = useState<
-    TAssetRowState['tokenAccuracyStake']
-  >({
-    accuracy: 0,
-    totalStake: 0,
-    totalStakePreviousDay: 0
-  })
-
   const { currentEpoch, secondsPerEpoch } = usePredictoorsContext()
-
-  //const testLoadCountRef = useRef<number>(0)
   const { accuracyStatistics } = useAccuracyContext()
-
   const { timeFrameInterval } = useTimeFrameContext()
-
-  const [tokenData, setTokenData] = useState<TokenData>({
-    name: '',
-    symbol: '',
-    pair: '',
-    price: 0,
-    market: ''
-  })
   const { allPairsData } = useMarketPriceContext()
 
   const {
@@ -72,35 +51,68 @@ export const AssetRow: React.FC<TAssetRowProps> = ({ assetData }) => {
     market,
     baseToken,
     quoteToken,
-    //interval,
     contract
   } = assetData
 
-  // Periodic price update
-  useEffect(() => {
-    const priceInterval = setInterval(() => {
-      if (!allPairsData) return
-
-      const pairSymbol = `${baseToken}${quoteToken}`
-      const price = getSpecificPairFromContextData({
-        allPairsData: allPairsData,
-        pairSymbol: pairSymbol
-      })
-
-      const name = `${baseToken}-${quoteToken}`
-      setTokenData({
-        price: parseFloat(price),
-        name,
-        pair: pairSymbol,
-        symbol: baseToken,
-        market: market
-      })
-    }, 10000)
-
-    return () => {
-      clearInterval(priceInterval)
+  // Calculate tokenData using useMemo instead of useState + useEffect
+  const tokenData = useMemo<TokenData>(() => {
+    if (!allPairsData) {
+      return {
+        name: '',
+        symbol: '',
+        pair: '',
+        price: 0,
+        market: ''
+      }
     }
-  }, [allPairsData, baseToken, quoteToken, market, epochData])
+
+    const pairSymbol = `${baseToken}${quoteToken}`
+    const price = getSpecificPairFromContextData({
+      allPairsData,
+      pairSymbol
+    })
+
+    const name = `${baseToken}-${quoteToken}`
+    return {
+      price: parseFloat(price),
+      name,
+      pair: pairSymbol,
+      symbol: baseToken,
+      market
+    }
+  }, [allPairsData, baseToken, quoteToken, market])
+
+  // Calculate tokenAccuracyStake using useMemo instead of useState + useEffect
+  const tokenAccuracyStake = useMemo<TAssetRowState['tokenAccuracyStake']>(() => {
+    if (!contract || !getAccuracyStatisticsByTokenName) {
+      return {
+        accuracy: 0,
+        totalStake: 0,
+        totalStakePreviousDay: 0
+      }
+    }
+
+    const data = getAccuracyStatisticsByTokenName({
+      contractAddress: contract.address,
+      accuracyData: accuracyStatistics,
+      timeFrameInterval
+    })
+
+    if (!data) {
+      return {
+        accuracy: 0,
+        totalStake: 0,
+        totalStakePreviousDay: 0
+      }
+    }
+
+    const { average_accuracy, total_staked_today, total_staked_yesterday } = data
+    return {
+      accuracy: average_accuracy,
+      totalStake: total_staked_today,
+      totalStakePreviousDay: total_staked_yesterday
+    }
+  }, [contract, timeFrameInterval, accuracyStatistics])
 
   const slotProps = useMemo(
     () =>
@@ -114,43 +126,6 @@ export const AssetRow: React.FC<TAssetRowProps> = ({ assetData }) => {
         : null,
     [tokenName, pairName, subscription, market]
   )
-
-  useEffect(() => {
-    if (!allPairsData) return
-
-    const pairSymbol = `${baseToken}${quoteToken}`
-    const price = getSpecificPairFromContextData({
-      allPairsData: allPairsData,
-      pairSymbol: pairSymbol
-    })
-
-    const name = `${baseToken}-${quoteToken}`
-    setTokenData({
-      price: parseFloat(price),
-      name,
-      pair: pairSymbol,
-      symbol: baseToken,
-      market: market
-    })
-  }, [allPairsData, baseToken, quoteToken, market])
-
-  useEffect(() => {
-    if (!contract || !getAccuracyStatisticsByTokenName) return
-
-    const data = getAccuracyStatisticsByTokenName({
-      contractAddress: contract.address,
-      accuracyData: accuracyStatistics,
-      timeFrameInterval: timeFrameInterval
-    })
-
-    if (!data) return
-    const { average_accuracy, total_staked_today, total_staked_yesterday } = data
-    setTokenAccuracyStake({
-      accuracy: average_accuracy,
-      totalStake: total_staked_today,
-      totalStakePreviousDay: total_staked_yesterday
-    })
-  }, [contract, timeFrameInterval, accuracyStatistics])
 
   if (!tokenData || !slotProps) return null
 

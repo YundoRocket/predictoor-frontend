@@ -546,11 +546,17 @@ export const PredictoorsProvider: React.FC<TPredictoorsContextProps> = ({
     }
   }, [subscribedPredictoors, currentEpoch, addChainListener, secondsPerEpoch, predictoorInstances.length])
 
+  // This useEffect is legitimate - it's fetching external data (async side effect)
+  // It also merges with initialEpochData if available
   useEffect(() => {
+    let isMounted = true
+
     getAllInterestingPredictionContracts(
       currentConfig.subgraph,
       currentConfig.blacklistedPredictions
     ).then((contracts) => {
+      if (!isMounted) return
+
       const allowedContracts: Record<string, TPredictionContract> =
         filterAllowedContracts({
           contracts,
@@ -562,24 +568,27 @@ export const PredictoorsProvider: React.FC<TPredictoorsContextProps> = ({
         contracts: allowedContracts,
         interval: timeFrameInterval
       })
-      setContracts(contractsOfTheTimeframe)
-    })
-  }, [timeFrameInterval])
 
-  useEffect(() => {
-    if (!initialEpochData) return
-    setContracts((prevContracts) => {
-      const serverContracts = prevContracts || {}
-      const updatedContracts = { ...serverContracts }
-      initialEpochData.forEach((data) => {
-        updatedContracts[data.contractInfo?.address] = {
-          ...data?.contractInfo,
-          owner: currentConfig.opfOwnerAddress
-        }
-      })
-      return updatedContracts
+      // Merge with initialEpochData if available
+      const mergedContracts = { ...contractsOfTheTimeframe }
+      if (initialEpochData) {
+        initialEpochData.forEach((data) => {
+          mergedContracts[data.contractInfo?.address] = {
+            ...data?.contractInfo,
+            owner: currentConfig.opfOwnerAddress
+          }
+        })
+      }
+
+      setContracts(mergedContracts)
+    }).catch((error) => {
+      console.error('Error fetching contracts:', error)
     })
-  }, [initialEpochData])
+
+    return () => {
+      isMounted = false
+    }
+  }, [timeFrameInterval, initialEpochData])
 
   useEffect(() => {
     previousSubscribedPredictoorsRef.current = previousSubscribedPredictoors

@@ -12,14 +12,16 @@ type ProgressBarProps = {
 export default function ProgressBar({
   progress,
   max,
-  refreshOnData,
 }: ProgressBarProps) {
+  // Initialize state with progress prop value
   const [completed, setCompleted] = useState(progress);
 
+  // Reset completed when progress changes (legitimate use of useEffect for synchronization)
   useEffect(() => {
     setCompleted(progress);
-  }, [progress, refreshOnData]);
+  }, [progress]);
 
+  // This useEffect is legitimate - it's managing a timer (external system)
   useEffect(() => {
     if (completed <= 0) return;
 

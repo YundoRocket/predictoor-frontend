@@ -4,7 +4,7 @@ import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
 import { getRelatedPair } from '@/contexts/MarketPriceContextHelpers'
 import { usePredictoorsContext } from '@/contexts/PredictoorsContext'
 import { useSocketContext } from '@/contexts/SocketContext'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { EpochPrediction } from './EpochDetails/EpochPrediction'
 import { EpochPrice } from './EpochDetails/EpochPrice'
 import { EpochStakedTokens } from './EpochDetails/EpochStakedTokens'
@@ -36,7 +36,6 @@ export type TEpochDisplayProps = {
 
 export const EpochDisplay: React.FC<TEpochDisplayProps> = ({
   status,
-  price,
   address,
   tokenName,
   pairName,
@@ -45,9 +44,6 @@ export const EpochDisplay: React.FC<TEpochDisplayProps> = ({
   secondsPerEpoch
 }) => {
   const { epochData } = useSocketContext()
-  const [relatedData, setRelatedData] = useState<RelatedData | null>()
-  const [delta, setDelta] = useState<number>()
-  const [finalPrice, setFinalPrice] = useState<number>(0)
   const { fetchingPredictions } = usePredictoorsContext()
   const { fetchHistoricalPair, historicalPairsCache, isPriceLoading } = useMarketPriceContext()
 
@@ -67,16 +63,8 @@ export const EpochDisplay: React.FC<TEpochDisplayProps> = ({
     }
   }, [status])
 
-  const getHistoryEpochPriceDelta = async () => {
-    if (status !== EEpochDisplayStatus.PastEpoch) return
-
-    await fetchHistoricalPair(
-      tokenName + pairName,
-      epochStartTs - 2 * secondsPerEpoch
-    )
-  }
-
-  useEffect(() => {
+  // Calculate finalPrice and delta using useMemo instead of useState + useEffect
+  const { finalPrice, delta } = useMemo(() => {
     const initialPrice = getRelatedPair({
       pairSymbol: tokenName + pairName,
       cacheTimestamp:
@@ -84,46 +72,59 @@ export const EpochDisplay: React.FC<TEpochDisplayProps> = ({
       historicalPairsCache,
       epochStartTs: epochStartTs - 2 * secondsPerEpoch
     })?.close
-    const finalPrice = getRelatedPair({
+    const finalPriceData = getRelatedPair({
       pairSymbol: tokenName + pairName,
       cacheTimestamp:
         epochStartTs - (relatedPredictionIndex + 2) * secondsPerEpoch,
       historicalPairsCache,
       epochStartTs: epochStartTs - secondsPerEpoch
     })?.close
-    if (!initialPrice || !finalPrice) return
 
-    setFinalPrice(parseFloat(finalPrice))
-    const delta =
-      (100 * (parseFloat(finalPrice) - parseFloat(initialPrice))) /
-      ((parseFloat(finalPrice) + parseFloat(initialPrice)) / 2)
-    setDelta(delta)
+    if (!initialPrice || !finalPriceData) {
+      return { finalPrice: 0, delta: undefined }
+    }
+
+    const finalPriceValue = parseFloat(finalPriceData)
+    const calculatedDelta =
+      (100 * (finalPriceValue - parseFloat(initialPrice))) /
+      ((finalPriceValue + parseFloat(initialPrice)) / 2)
+
+    return {
+      finalPrice: finalPriceValue,
+      delta: calculatedDelta
+    }
   }, [
     historicalPairsCache,
     tokenName,
     pairName,
     epochStartTs,
-    price,
-    relatedPredictionIndex
+    relatedPredictionIndex,
+    secondsPerEpoch
   ])
 
-  useEffect(() => {
+  // Calculate relatedData using useMemo instead of useState + useEffect
+  const relatedData = useMemo<RelatedData | null>(() => {
     if (!Array.isArray(epochData)) {
-      setRelatedData(null)
-      return
+      return null
     }
 
     const foundData = epochData
       ?.find((data) => data.contractInfo?.address === address)
       ?.predictions.sort((a, b) => a.epoch - b.epoch)[relatedPredictionIndex]
 
-    setRelatedData(foundData || null)
+    return foundData || null
   }, [epochData, address, relatedPredictionIndex])
 
+  // Keep this useEffect for the side effect (fetching historical data)
   useEffect(() => {
     if (isNextEpoch || !secondsPerEpoch || !epochStartTs) return
-    getHistoryEpochPriceDelta()
-  }, [relatedData, secondsPerEpoch, epochStartTs, isNextEpoch])
+    if (status !== EEpochDisplayStatus.PastEpoch) return
+
+    fetchHistoricalPair(
+      tokenName + pairName,
+      epochStartTs - 2 * secondsPerEpoch
+    )
+  }, [relatedData, secondsPerEpoch, epochStartTs, isNextEpoch, status, tokenName, pairName, fetchHistoricalPair])
 
   return (
     <div className="flex flex-col gap-1 px-2 py-1">

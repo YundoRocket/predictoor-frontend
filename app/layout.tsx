@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import Footer from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "@/components/Providers";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,8 +32,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={`
-          ${geistSans.variable} 
-          ${geistMono.variable} 
+          ${geistSans.variable}
+          ${geistMono.variable}
           antialiased
           bg-background
           text-foreground
@@ -43,18 +45,22 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {/* Layout colonne plein écran */}
-          <div className="min-h-screen flex flex-col">
-            <Navbar />
+          <TooltipProvider>
+            <Providers>
+              {/* Layout colonne plein écran */}
+              <div className="min-h-screen flex flex-col">
+                <Navbar />
 
-            <main className="flex-1 px-4 py-8 md:px-10">
-              {children}
-            </main>
+                <main className="flex-1 px-4 py-8 md:px-10">
+                  {children}
+                </main>
 
-            <Footer />
-          </div>
+                <Footer />
+              </div>
 
-          <Toaster />
+              <Toaster />
+            </Providers>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

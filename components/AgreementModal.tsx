@@ -2,18 +2,31 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function AgreementModal() {
-  const [isOpen, setIsOpen] = useState(false);
   const [agreed, setAgreed] = useState(false);
-
   const router = useRouter();
   const pathname = usePathname();
+
+  // Calculate whether modal should be open using useMemo
+  const shouldModalBeOpen = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const hasAgreed = window.localStorage.getItem("termsOfUse") === "agreed";
+    return !hasAgreed && pathname !== "/terms";
+  }, [pathname]);
+
+  // Use local state for controlled modal open/close
+  const [isOpen, setIsOpen] = useState(shouldModalBeOpen);
+
+  // Sync isOpen with shouldModalBeOpen when pathname changes
+  useEffect(() => {
+    setIsOpen(shouldModalBeOpen);
+  }, [shouldModalBeOpen]);
 
   const onContinue = () => {
     if (typeof window !== "undefined") {
@@ -22,15 +35,6 @@ export default function AgreementModal() {
     if (pathname === "/terms") router.push("/");
     setIsOpen(false);
   };
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const hasAgreed = window.localStorage.getItem("termsOfUse") === "agreed";
-    const shouldOpen = !hasAgreed && pathname !== "/terms";
-
-    setIsOpen(shouldOpen);
-  }, [pathname]);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
