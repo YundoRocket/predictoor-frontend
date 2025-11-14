@@ -1,6 +1,13 @@
-import { ArrowUp, ArrowDown, Coins } from 'lucide-react'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SubscriptionStatus } from '../Subscription'
+import Image from "next/image"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export type TEpochStakedTokensProps = {
   showLabel?: boolean | undefined
@@ -50,7 +57,22 @@ export const EpochStakedTokens: React.FC<TEpochStakedTokensProps> = ({
       "flex items-center gap-2",
       "h-[25px] w-full pt-1.5"
     )}>
-      <Coins className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Image
+              src="/ocean-token-logo.svg"
+              height={20}
+              width={20}
+              alt="Ocean token logo"
+              className="rounded-full cursor-help"
+            />
+          </TooltipTrigger>
+          <TooltipContent className="px-2 py-1 text-xs">
+            OCEAN
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <span className="text-sm font-medium">
         {direction === undefined
           ? '?'

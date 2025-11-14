@@ -9,8 +9,15 @@ import { useIsCorrectChain } from '@/hooks/useIsCorrectChain'
 import { NonError, ValueOf, sleep } from '@/utils/utils'
 import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
-import { Loader2, Coins } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { useAccount } from 'wagmi'
+import Image from "next/image"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export enum SubscriptionStatus {
   'INACTIVE' = 'inactive',
@@ -119,7 +126,22 @@ export default function Subscription({
       {contractPriceInfo.price > 0 ? (
         <>
           <div className="flex items-center gap-1.5 text-sm font-medium">
-            <Coins className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Image
+                    src="/ocean-token-logo.svg"
+                    height={20}
+                    width={20}
+                    alt="Ocean token logo"
+                    className="rounded-full cursor-help"
+                  />
+                </TooltipTrigger>
+                <TooltipContent className="px-2 py-1 text-xs">
+                  OCEAN
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <span className="font-semibold">{contractPriceInfo.price}</span>
             <span className="text-muted-foreground">/</span>
             <span className="text-muted-foreground">

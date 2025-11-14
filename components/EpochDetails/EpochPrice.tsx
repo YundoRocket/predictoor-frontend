@@ -1,4 +1,5 @@
 import { Loader2, ArrowUp, ArrowDown } from 'lucide-react'
+import numeral from 'numeral'
 
 export type TEpochPriceProps = {
   delta: number | undefined
@@ -18,7 +19,7 @@ export const EpochPrice: React.FC<TEpochPriceProps> = ({
         <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
       ) : (
         <>
-          <span className="font-semibold tabular-nums">{price}</span>
+          <span className="font-semibold tabular-nums">{numeral(price).format('0,0.00')}</span>
           {delta === undefined ? (
             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
           ) : delta === 0 ? null : (

@@ -114,7 +114,7 @@ const networkName = useMemo((): string | undefined => {
     <div className="flex w-full items-center justify-end">
       <div className="flex items-center gap-3">
         {isConnected && address && chainId && networkName && (
-          <span className="rounded-full border bg-muted px-2 py-1 text-xs text-muted-foreground md:text-sm">
+          <span className="rounded-md border bg-popover px-2 py-1 text-xs md:text-sm">
             {networkName}
           </span>
         )}
