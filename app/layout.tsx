@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
+import Footer from "@/components/Footer";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -28,7 +29,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`
+          ${geistSans.variable} 
+          ${geistMono.variable} 
+          antialiased
+          bg-background
+          text-foreground
+        `}
       >
         <ThemeProvider
           attribute="class"
@@ -36,10 +43,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar />
-          <div className="p-10">
-            {children}
-          </div>  
+          {/* Layout colonne plein écran */}
+          <div className="min-h-screen flex flex-col">
+            <Navbar />
+
+            <main className="flex-1 px-4 py-8 md:px-10">
+              {children}
+            </main>
+
+            <Footer />
+          </div>
+
           <Toaster />
         </ThemeProvider>
       </body>
