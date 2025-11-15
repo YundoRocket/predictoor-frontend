@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/Providers";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AgreementModal from "@/components/AgreementModal";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,6 +65,7 @@ export default function RootLayout({
             </Providers>
           </TooltipProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
