@@ -20,6 +20,7 @@ import { TPredictionContract } from '@/utils/subgraphs/getAllInterestingPredicti
 import { EPredictoorContractInterval } from '@/utils/types/EPredictoorContractInterval'
 import { AssetRow } from './AssetRow'
 import { SubscriptionStatus } from './Subscription'
+import { SearchFilters } from './SearchBar'
 
 type TableColumn = {
   Header: string | React.ReactNode
@@ -41,13 +42,14 @@ export type TAssetData = {
 
 export type TAssetTableProps = {
   contracts: Record<string, TPredictionContract> | undefined
+  filters: SearchFilters
 }
 
 export type TAssetTableState = {
   AssetsData: Array<TAssetData>
 }
 
-export const AssetTable: React.FC<TAssetTableProps> = ({ contracts }) => {
+export const AssetTable: React.FC<TAssetTableProps> = ({ contracts, filters }) => {
   const { subscribedPredictoors, currentEpoch, secondsPerEpoch } =
     usePredictoorsContext()
 
@@ -125,8 +127,27 @@ export const AssetTable: React.FC<TAssetTableProps> = ({ contracts }) => {
       return a.tokenName.toUpperCase().charCodeAt(0) - b.tokenName.toUpperCase().charCodeAt(0)
     })
 
-    return assets
-  }, [contracts, getSubscriptionStatus])
+    // Apply search filters
+    let filteredAssets = assets
+
+    if (filters.ticker) {
+      const searchTerm = filters.ticker.toLowerCase()
+      filteredAssets = filteredAssets.filter(
+        (asset) =>
+          asset.baseToken.toLowerCase().includes(searchTerm) ||
+          asset.quoteToken.toLowerCase().includes(searchTerm) ||
+          asset.tokenName.toLowerCase().includes(searchTerm)
+      )
+    }
+
+    if (filters.platform && filters.platform !== 'all') {
+      filteredAssets = filteredAssets.filter(
+        (asset) => asset.market.toLowerCase() === filters.platform.toLowerCase()
+      )
+    }
+
+    return filteredAssets
+  }, [contracts, getSubscriptionStatus, filters])
 
   /**
    * Colonnes dérivées de assetTableColumns + currentEpoch + timeFrameInterval

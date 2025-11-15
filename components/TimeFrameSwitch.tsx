@@ -30,7 +30,7 @@ export function TimeFrameSwitch() {
       type="single"
       value={value}
       onValueChange={handleChange}
-      className="border rounded-md p-1 gap-1"
+      className="border rounded-lg"
     >
       {availableTimeFrames.map((tf) => {
         const v = String(tf.value)

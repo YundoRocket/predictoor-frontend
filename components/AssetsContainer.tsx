@@ -12,8 +12,13 @@ import { currentConfig } from '@/utils/appconstants'
 import { getInitialData } from '@/utils/getInitialData'
 import { Maybe } from '@/utils/utils'
 import { AssetTable } from './AssetTable'
+import { SearchFilters } from './SearchBar'
 
-export const AssetsContainer: React.FC = () => {
+type AssetsContainerProps = {
+  filters: SearchFilters
+}
+
+export const AssetsContainer: React.FC<AssetsContainerProps> = ({ filters }) => {
   const { contracts } = usePredictoorsContext()
   const { handleEpochData } = useSocketContext()
   const containerRef = useRef<Maybe<HTMLDivElement>>(null)
@@ -52,7 +57,7 @@ export const AssetsContainer: React.FC = () => {
         containerRef.current = ref
       }}
     >
-      <AssetTable contracts={contracts} />
+      <AssetTable contracts={contracts} filters={filters} />
     </div>
   )
 }
