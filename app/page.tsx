@@ -20,7 +20,7 @@ export default function Home() {
         <TimeFrameSwitch />
       </div>
 
-      <SearchBar filters={filters} onFiltersChange={setFilters} />
+      {/* <SearchBar filters={filters} onFiltersChange={setFilters} /> */}
 
       <AssetsContainer filters={filters} />
     </main>
