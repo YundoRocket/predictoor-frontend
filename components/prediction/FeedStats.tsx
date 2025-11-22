@@ -1,10 +1,13 @@
 "use client"
 
+import { useMemo } from "react"
 import { TAssetData } from "../AssetTable"
 import { Card } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Target, TrendingUp, TrendingDown } from "lucide-react"
 import { useAccuracyContext } from "@/contexts/AccuracyContext"
+import { getAccuracyStatisticsByTokenName } from "@/contexts/AccuracyContextHelpers"
+import { useTimeFrameContext } from "@/contexts/TimeFrameContext"
 import Subscription, { SubscriptionStatus } from "../Subscription"
 import numeral from "numeral"
 
@@ -13,17 +16,27 @@ export type FeedStatsProps = {
 }
 
 export function FeedStats({ assetData }: FeedStatsProps) {
-  const { accuracyData } = useAccuracyContext()
+  const { accuracyStatistics } = useAccuracyContext()
+  const { timeFrameInterval } = useTimeFrameContext()
 
-  const accuracy = accuracyData?.find(
-    (data) =>
-      data.contract.address.toLowerCase() ===
-      assetData.contract.address.toLowerCase()
-  )
+  const accuracyData = useMemo(() => {
+    if (!assetData.contract) return null
 
-  const accuracy7d = accuracy?.accuracy7d ?? 0
-  const totalStake24h = accuracy?.totalStake24h ?? 0
-  const stakeChange = accuracy?.stakeChange ?? 0
+    return getAccuracyStatisticsByTokenName({
+      contractAddress: assetData.contract.address,
+      accuracyData: accuracyStatistics,
+      timeFrameInterval
+    })
+  }, [assetData.contract, accuracyStatistics, timeFrameInterval])
+
+  const accuracy7d = accuracyData?.average_accuracy ?? 0
+  const totalStake24h = accuracyData?.total_staked_today ?? 0
+  const totalStakeYesterday = accuracyData?.total_staked_yesterday ?? 0
+
+  // Calculate stake change percentage
+  const stakeChange = totalStakeYesterday > 0
+    ? ((totalStake24h - totalStakeYesterday) / totalStakeYesterday) * 100
+    : 0
 
   const isUnlocked =
     assetData.subscription === SubscriptionStatus.ACTIVE ||
@@ -58,7 +71,7 @@ export function FeedStats({ assetData }: FeedStatsProps) {
           Performance &amp; Usage
         </h3>
 
-        {!accuracy && (
+        {!accuracyData && (
           <span className="text-xs text-muted-foreground">
             No historical data yet
           </span>

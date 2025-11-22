@@ -9,7 +9,7 @@ import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
 import { getSpecificPairFromContextData } from '@/contexts/MarketPriceContextHelpers'
 import { formatTime } from '@/utils/appconstants'
 import { SubscriptionStatus } from '../Subscription'
-import LiveTime from '../elements/LiveTime'
+import EpochCountdown from '../elements/EpochCountdown'
 import numeral from 'numeral'
 
 type RelatedData = {
@@ -89,7 +89,7 @@ export function LiveEpochCard({
           {/* Timer */}
           <div className="flex items-center gap-1 text-sm font-mono bg-muted px-3 py-1.5 rounded-md">
             <Clock className="h-4 w-4" />
-            <LiveTime
+            <EpochCountdown
               currentEpochTimeStamp={currentEpoch}
               secondsPerEpoch={secondsPerEpoch}
             />
