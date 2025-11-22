@@ -38,6 +38,7 @@ export type TAssetData = {
   subscription: SubscriptionStatus
   subscriptionPrice: string
   secondsPerSubscription: number
+  image?: string
 }
 
 export type TAssetTableProps = {

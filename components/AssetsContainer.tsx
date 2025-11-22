@@ -11,7 +11,7 @@ import {
 import { currentConfig } from '@/utils/appconstants'
 import { getInitialData } from '@/utils/getInitialData'
 import { Maybe } from '@/utils/utils'
-import { AssetTable } from './AssetTable'
+import { SinglePairView } from './prediction/SinglePairView'
 import { SearchFilters } from './SearchBar'
 
 type AssetsContainerProps = {
@@ -52,12 +52,12 @@ export const AssetsContainer: React.FC<AssetsContainerProps> = ({ filters }) => 
 
   return (
     <div
-      className="w-full overflow-x-auto"
+      className="w-full"
       ref={(ref) => {
         containerRef.current = ref
       }}
     >
-      <AssetTable contracts={contracts} filters={filters} />
+      <SinglePairView contracts={contracts} filters={filters} />
     </div>
   )
 }
