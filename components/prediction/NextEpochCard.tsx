@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { TAssetData } from '../AssetTable'
 import { Card } from '@/components/ui/card'
-import { ArrowUp, ArrowDown, Lock } from 'lucide-react'
+import { ArrowUp, ArrowDown, Lock, PlayCircle } from 'lucide-react'
 import { useSocketContext } from '@/contexts/SocketContext'
 import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
 import { getSpecificPairFromContextData } from '@/contexts/MarketPriceContextHelpers'
@@ -56,8 +56,8 @@ export function NextEpochCard({
   }, [epochData, assetData.contract.address])
 
   const direction = predictionData?.dir
-  const stakedUp = predictionData?.nom ? parseFloat(String(predictionData.nom)) : 0
-  const totalStaked = predictionData?.denom ? parseFloat(String(predictionData.denom)) : 0
+  const stakedUp = predictionData?.nom ? parseFloat(String(predictionData.nom)) * 1000 : 0
+  const totalStaked = predictionData?.denom ? parseFloat(String(predictionData.denom)) * 1000 : 0
   const stakedDown = totalStaked - stakedUp
 
   const upPercentage = totalStaked > 0 ? (stakedUp / totalStaked) * 100 : 50
@@ -70,11 +70,21 @@ export function NextEpochCard({
     <Card className="p-6">
       <div className="space-y-4">
         {/* Header */}
-        <div>
-          <h3 className="text-lg font-bold mb-1">Next Epoch</h3>
-          <p className="text-sm text-muted-foreground">
-            {formatTime(nextEpochStart)} - {formatTime(nextEpochEnd)}
-          </p>
+        
+
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-lg font-bold mb-1">Next Epoch</h3>
+            <p className="text-sm text-muted-foreground">
+              {formatTime(nextEpochStart)} - {formatTime(nextEpochEnd)}
+            </p>
+          </div>
+
+          {/* Timer */}
+          <div className="flex items-center gap-1 text-sm font-mono bg-muted px-3 py-1.5 rounded-md">
+            <PlayCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <p className='text-green-600 dark:text-green-400'>Next</p>
+          </div>
         </div>
 
         {/* Reference price */}
@@ -98,16 +108,22 @@ export function NextEpochCard({
                   {direction === 1 ? (
                     <>
                       <ArrowUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      <span className="font-bold text-green-600 dark:text-green-400">
-                        Prediction: UP
-                      </span>
+                      <div>
+                      <div className="text-xs text-muted-foreground">Prediction</div>
+                        <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                          UP
+                        </span>
+                      </div>
                     </>
                   ) : (
                     <>
                       <ArrowDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-                      <span className="font-bold text-red-600 dark:text-red-400">
-                        Prediction: DOWN
-                      </span>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Prediction</div>
+                        <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                          DOWN
+                        </span>
+                      </div>
                     </>
                   )}
                 </div>
@@ -125,7 +141,7 @@ export function NextEpochCard({
                       >
                         {upPercentage > 15 && (
                           <span className="text-xs font-bold text-green-700 dark:text-green-300">
-                            {upPercentage.toFixed(1)}%
+                            {numeral(upPercentage).format('0.00')}%
                           </span>
                         )}
                       </div>
@@ -135,21 +151,30 @@ export function NextEpochCard({
                       >
                         {downPercentage > 15 && (
                           <span className="text-xs font-bold text-red-700 dark:text-red-300">
-                            {downPercentage.toFixed(1)}%
+                            {numeral(downPercentage).format('0.00')}%
                           </span>
                         )}
                       </div>
                     </div>
 
                     {/* Stake details */}
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1.5">
-                        <ArrowUp className="h-4 w-4 text-green-600" />
-                        <span className="font-mono font-semibold">{stakedUp} OCEAN</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <ArrowUp className="h-4 w-4 text-green-600" />
+                          <span className="font-mono font-semibold">{numeral(stakedUp).format('0.00a')} OCEAN</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-semibold">{numeral(stakedDown).format('0.00a')} OCEAN</span>
+                          <ArrowDown className="h-4 w-4 text-red-600" />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono font-semibold">{stakedDown} OCEAN</span>
-                        <ArrowDown className="h-4 w-4 text-red-600" />
+
+                      <div className="text-center pt-2 border-t">
+                        <span className="text-xs text-muted-foreground">
+                          Total this epoch:{' '}
+                          <span className="font-semibold">{numeral(totalStaked).format('0,0.00')} OCEAN</span> staked
+                        </span>
                       </div>
                     </div>
                   </div>

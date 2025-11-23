@@ -1,12 +1,12 @@
 "use client"
 
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { TAssetData } from '../AssetTable'
 import { Card } from '@/components/ui/card'
 import { ArrowUp, ArrowDown, Clock } from 'lucide-react'
 import { useSocketContext } from '@/contexts/SocketContext'
 import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
-import { getSpecificPairFromContextData } from '@/contexts/MarketPriceContextHelpers'
+import { getSpecificPairFromContextData, getRelatedPair } from '@/contexts/MarketPriceContextHelpers'
 import { formatTime } from '@/utils/appconstants'
 import { SubscriptionStatus } from '../Subscription'
 import EpochCountdown from '../elements/EpochCountdown'
@@ -31,13 +31,33 @@ export function LiveEpochCard({
   secondsPerEpoch
 }: LiveEpochCardProps) {
   const { epochData } = useSocketContext()
-  const { allPairsData } = useMarketPriceContext()
+  const { allPairsData, historicalPairsCache, fetchHistoricalPair } = useMarketPriceContext()
 
   const isUnlocked =
     assetData.subscription === SubscriptionStatus.ACTIVE ||
     assetData.subscription === SubscriptionStatus.FREE
 
-  // Get live price
+  // Fetch historical price data for start price
+  useEffect(() => {
+    if (!currentEpoch || !secondsPerEpoch) return
+
+    const pairSymbol = assetData.tokenName + assetData.pairName
+    fetchHistoricalPair(pairSymbol, currentEpoch - secondsPerEpoch)
+  }, [assetData.tokenName, assetData.pairName, currentEpoch, secondsPerEpoch, fetchHistoricalPair])
+
+  // Get start price (beginning of live epoch)
+  const startPrice = useMemo(() => {
+    const pairSymbol = assetData.tokenName + assetData.pairName
+    const priceData = getRelatedPair({
+      pairSymbol,
+      cacheTimestamp: currentEpoch - secondsPerEpoch,
+      historicalPairsCache,
+      epochStartTs: currentEpoch
+    })
+    return priceData?.open ? parseFloat(priceData.open) : 0
+  }, [assetData.tokenName, assetData.pairName, currentEpoch, secondsPerEpoch, historicalPairsCache])
+
+  // Get live price (current price)
   const livePrice = useMemo(() => {
     if (!allPairsData) return 0
     const pairSymbol = `${assetData.baseToken}${assetData.quoteToken}`
@@ -59,8 +79,8 @@ export function LiveEpochCard({
   }, [epochData, assetData.contract.address])
 
   const direction = predictionData?.dir
-  const stakedUp = predictionData?.nom ? parseFloat(String(predictionData.nom)) : 0
-  const totalStaked = predictionData?.denom ? parseFloat(String(predictionData.denom)) : 0
+  const stakedUp = predictionData?.nom ? parseFloat(String(predictionData.nom)) * 1000 : 0
+  const totalStaked = predictionData?.denom ? parseFloat(String(predictionData.denom)) * 1000 : 0
   const stakedDown = totalStaked - stakedUp
 
   const upPercentage = totalStaked > 0 ? (stakedUp / totalStaked) * 100 : 50
@@ -96,11 +116,19 @@ export function LiveEpochCard({
           </div>
         </div>
 
-        {/* Live price */}
-        <div>
-          <div className="text-xs text-muted-foreground mb-1">Live Price</div>
-          <div className="text-2xl font-bold">
-            ${numeral(livePrice).format('0,0.00')}
+        {/* Prices */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Start Price</div>
+            <div className="text-xl font-bold">
+              ${numeral(startPrice).format('0,0.00')}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-muted-foreground mb-1">Live Price</div>
+            <div className="text-xl font-bold">
+              ${numeral(livePrice).format('0,0.00')}
+            </div>
           </div>
         </div>
 
@@ -117,7 +145,7 @@ export function LiveEpochCard({
                   <>
                     <ArrowUp className="h-6 w-6 text-green-600 dark:text-green-400" />
                     <div>
-                      <div className="text-xs text-muted-foreground">Consensus</div>
+                      <div className="text-xs text-muted-foreground">Prediction</div>
                       <span className="text-lg font-bold text-green-600 dark:text-green-400">
                         UP
                       </span>
@@ -127,7 +155,7 @@ export function LiveEpochCard({
                   <>
                     <ArrowDown className="h-6 w-6 text-red-600 dark:text-red-400" />
                     <div>
-                      <div className="text-xs text-muted-foreground">Consensus</div>
+                      <div className="text-xs text-muted-foreground">Prediction</div>
                       <span className="text-lg font-bold text-red-600 dark:text-red-400">
                         DOWN
                       </span>
@@ -149,7 +177,7 @@ export function LiveEpochCard({
                 >
                   {upPercentage > 15 && (
                     <span className="text-xs font-bold text-green-700 dark:text-green-300">
-                      {upPercentage.toFixed(1)}%
+                      {numeral(upPercentage).format('0.00')}%
                     </span>
                   )}
                 </div>
@@ -159,7 +187,7 @@ export function LiveEpochCard({
                 >
                   {downPercentage > 15 && (
                     <span className="text-xs font-bold text-red-700 dark:text-red-300">
-                      {downPercentage.toFixed(1)}%
+                      {numeral(downPercentage).format('0.00')}%
                     </span>
                   )}
                 </div>
@@ -170,12 +198,10 @@ export function LiveEpochCard({
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-1.5">
                     <ArrowUp className="h-4 w-4 text-green-600" />
-                    <span className="text-xs text-muted-foreground">Stake UP:</span>
-                    <span className="font-mono font-semibold">{numeral(stakedUp).format('0,0.00')} OCEAN</span>
+                    <span className="font-mono font-semibold">{numeral(stakedUp).format('0.00a')} OCEAN</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground">Stake DOWN:</span>
-                    <span className="font-mono font-semibold">{numeral(stakedDown).format('0,0.00')} OCEAN</span>
+                    <span className="font-mono font-semibold">{numeral(stakedDown).format('0.00a')} OCEAN</span>
                     <ArrowDown className="h-4 w-4 text-red-600" />
                   </div>
                 </div>

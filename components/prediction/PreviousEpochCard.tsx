@@ -1,9 +1,9 @@
 "use client"
 
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import { TAssetData } from '../AssetTable'
 import { Card } from '@/components/ui/card'
-import { ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUp, ArrowDown, CircleX } from 'lucide-react'
 import { useSocketContext } from '@/contexts/SocketContext'
 import { useMarketPriceContext } from '@/contexts/MarketPriceContext'
 import { getRelatedPair } from '@/contexts/MarketPriceContextHelpers'
@@ -30,22 +30,31 @@ export function PreviousEpochCard({
   secondsPerEpoch
 }: PreviousEpochCardProps) {
   const { epochData } = useSocketContext()
-  const { historicalPairsCache } = useMarketPriceContext()
+  const { historicalPairsCache, fetchHistoricalPair } = useMarketPriceContext()
 
   const isUnlocked =
     assetData.subscription === SubscriptionStatus.ACTIVE ||
     assetData.subscription === SubscriptionStatus.FREE
 
-  // Get historical price data
+  // Fetch historical price data
+  useEffect(() => {
+    if (!epochStartTs || !secondsPerEpoch) return
+
+    const pairSymbol = assetData.tokenName + assetData.pairName
+    fetchHistoricalPair(pairSymbol, epochStartTs - 2 * secondsPerEpoch)
+  }, [assetData.tokenName, assetData.pairName, epochStartTs, secondsPerEpoch, fetchHistoricalPair])
+
+  // Get close price (end of previous epoch = start of live epoch)
   const closePrice = useMemo(() => {
+    const pairSymbol = assetData.tokenName + assetData.pairName
     const priceData = getRelatedPair({
-      pairSymbol: assetData.tokenName + assetData.pairName,
+      pairSymbol,
       cacheTimestamp: epochStartTs - 2 * secondsPerEpoch,
       historicalPairsCache,
       epochStartTs: epochStartTs - secondsPerEpoch
     })
     return priceData?.close ? parseFloat(priceData.close) : 0
-  }, [assetData, epochStartTs, secondsPerEpoch, historicalPairsCache])
+  }, [assetData.tokenName, assetData.pairName, epochStartTs, secondsPerEpoch, historicalPairsCache])
 
   // Get prediction data
   const predictionData = useMemo(() => {
@@ -59,8 +68,8 @@ export function PreviousEpochCard({
   }, [epochData, assetData.contract.address])
 
   const direction = predictionData?.dir
-  const stakedUp = predictionData?.nom ? parseFloat(String(predictionData.nom)) : 0
-  const totalStaked = predictionData?.denom ? parseFloat(String(predictionData.denom)) : 0
+  const stakedUp = predictionData?.nom ? parseFloat(String(predictionData.nom)) * 1000 : 0
+  const totalStaked = predictionData?.denom ? parseFloat(String(predictionData.denom)) * 1000 : 0
   const stakedDown = totalStaked - stakedUp
 
   const upPercentage = totalStaked > 0 ? (stakedUp / totalStaked) * 100 : 50
@@ -72,11 +81,20 @@ export function PreviousEpochCard({
     <Card className="p-6">
       <div className="space-y-4">
         {/* Header */}
-        <div>
-          <h3 className="text-lg font-bold mb-1">Previous Epoch</h3>
-          <p className="text-sm text-muted-foreground">
-            Ended at {formatTime(endTime)}
-          </p>
+        
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-lg font-bold mb-1">Previous Epoch</h3>
+            <p className="text-sm text-muted-foreground">
+              Ended at {formatTime(endTime)}
+            </p>
+          </div>
+
+          {/* Timer */}
+          <div className="flex items-center gap-1 text-sm font-mono bg-muted px-3 py-1.5 rounded-md">
+            <CircleX className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <p className='text-red-600 dark:text-red-400'>Expired</p>
+          </div>
         </div>
 
         {/* Close price */}
@@ -99,16 +117,22 @@ export function PreviousEpochCard({
                 {direction === 1 ? (
                   <>
                     <ArrowUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    <span className="font-bold text-green-600 dark:text-green-400">
-                      Direction: UP
-                    </span>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Prediction</div>
+                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                        UP
+                      </span>
+                    </div>
                   </>
                 ) : (
                   <>
                     <ArrowDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-                    <span className="font-bold text-red-600 dark:text-red-400">
-                      Direction: DOWN
-                    </span>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Prediction</div>
+                      <span className="text-lg font-bold text-red-600 dark:text-red-400">
+                        DOWN
+                      </span>
+                    </div>
                   </>
                 )}
               </div>
@@ -126,7 +150,7 @@ export function PreviousEpochCard({
                 >
                   {upPercentage > 15 && (
                     <span className="text-xs font-bold text-green-700 dark:text-green-300">
-                      {upPercentage.toFixed(1)}%
+                      {numeral(upPercentage).format('0.00')}%
                     </span>
                   )}
                 </div>
@@ -136,21 +160,30 @@ export function PreviousEpochCard({
                 >
                   {downPercentage > 15 && (
                     <span className="text-xs font-bold text-red-700 dark:text-red-300">
-                      {downPercentage.toFixed(1)}%
+                      {numeral(downPercentage).format('0.00')}%
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Stake details */}
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-1.5">
-                  <ArrowUp className="h-4 w-4 text-green-600" />
-                  <span className="font-mono font-semibold">{numeral(stakedUp).format('0,0.00')} OCEAN</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <ArrowUp className="h-4 w-4 text-green-600" />
+                    <span className="font-mono font-semibold">{numeral(stakedUp).format('0.00a')} OCEAN</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono font-semibold">{numeral(stakedDown).format('0.00a')} OCEAN</span>
+                    <ArrowDown className="h-4 w-4 text-red-600" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono font-semibold">{numeral(stakedDown).format('0,0.00')} OCEAN</span>
-                  <ArrowDown className="h-4 w-4 text-red-600" />
+
+                <div className="text-center pt-2 border-t">
+                  <span className="text-xs text-muted-foreground">
+                    Total this epoch:{' '}
+                    <span className="font-semibold">{numeral(totalStaked).format('0,0.00')} OCEAN</span> staked
+                  </span>
                 </div>
               </div>
             </div>

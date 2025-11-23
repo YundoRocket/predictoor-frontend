@@ -43,7 +43,7 @@ export function FeedStats({ assetData }: FeedStatsProps) {
     assetData.subscription === SubscriptionStatus.FREE
 
   const formatPercent = (value: number) =>
-    `${numeral(value).format("0,0.0")}%`
+    `${numeral(value).format("0,0.00")}%`
 
   const accuracyColor =
     accuracy7d >= 60
